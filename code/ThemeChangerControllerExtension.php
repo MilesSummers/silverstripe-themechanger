@@ -25,8 +25,6 @@ class ThemeChangerControllerExtension extends Extension {
 	 * Override the default behavior to ensure that if a theme has been specified to serve the correct theme
 	 */
 	public function onAfterInit() {
-		global $_TEMPLATE_MANIFEST;
-		
 		$config = SiteConfig::current_site_config();
 		$request = $this->owner->getRequest();
 
@@ -34,17 +32,20 @@ class ThemeChangerControllerExtension extends Extension {
 		$new_theme = $request->getVar('theme');
 		if(isset($new_theme)) {
 			// check that it is a valid theme
-			if(isset($_TEMPLATE_MANIFEST['Page']['themes'][$new_theme])) {
+			$templates = SS_TemplateLoader::instance()->getManifest()->getTemplates();
+			if(isset($templates['page']['themes'][$new_theme])) {
 				Cookie::set('theme', $new_theme, self::$cookie_expire_time);
 				if($new_theme != $config->Theme) Director::set_environment_type("dev");
-				SSViewer::set_theme($new_theme);
-			}
+				Config::inst()->update('SSViewer', 'theme', $new_theme);
+			} else {
+				Config::inst()->update('SSViewer', 'theme', $config->Theme);
+			} 
 		} elseif(Cookie::get('theme')) {
 			if(Cookie::get('theme') != $config->Theme) Director::set_environment_type("dev");
-			SSViewer::set_theme(Cookie::get('theme'));			
+			Config::inst()->update('SSViewer', 'theme', Cookie::get('theme'));
 		} else {
 			Director::set_environment_type("live");
-			SSViewer::set_theme($config->Theme);
+			Config::inst()->update('SSViewer', 'theme', $config->Theme);
 		}
 		
 		// if I am testing a theme then flush the cache
